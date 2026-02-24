@@ -41,7 +41,9 @@ services:
       - honeypot-net
 
   opencanary:
-    image: opencanary/opencanary:0.9.3
+    build:
+      context: .
+      dockerfile: Dockerfile.opencanary
     container_name: opencanary
     restart: unless-stopped
     ports:
@@ -52,7 +54,6 @@ services:
       - "8080:8080"
       - "27017:27017"
     volumes:
-      - ./config/opencanary/opencanary.conf:/root/.opencanary.conf:ro
       - /var/log/opencanary:/var/log/opencanary
     networks:
       - honeypot-net

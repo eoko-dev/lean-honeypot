@@ -1,0 +1,7 @@
+FROM python:3.11-slim
+
+RUN pip install --no-cache-dir opencanary==0.9.3
+
+COPY config/opencanary/opencanary.conf /root/.opencanary.conf
+
+CMD ["opencanaryd", "--start", "--nodaemon"]

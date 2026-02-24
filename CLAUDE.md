@@ -15,7 +15,7 @@ Lightweight honeypot deployment stack using cloud-init + Docker Compose on Debia
 |-----------|-------|------|
 | Cowrie | `cowrie/cowrie` | SSH/Telnet honeypot (ports 22, 23) |
 | Dionaea | `dinotools/dionaea:0.11.0` | Multi-protocol honeypot (FTP, HTTP, SMB, MSSQL, MySQL, SIP) |
-| Opencanary | `opencanary/opencanary:0.9.3` | Lightweight listeners (SMTP, POP3, VNC, Redis, HTTP-alt, MongoDB) |
+| Opencanary | built via `Dockerfile.opencanary` (`opencanary==0.9.3` from PyPI) | Lightweight listeners (SMTP, POP3, VNC, Redis, HTTP-alt, MongoDB) |
 | Loki | `grafana/loki:2.9.0` | Log aggregation (internal only, no host port) |
 | Promtail | `grafana/promtail:2.9.0` | Log shipper — scrapes Cowrie + Opencanary JSON logs |
 | Grafana | `grafana/grafana:10.2.0` | Dashboard UI on host port 64296 |
