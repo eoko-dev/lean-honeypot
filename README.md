@@ -37,10 +37,9 @@ ssh root@<ip>
 git clone https://github.com/YOURUSER/lean-honeypot.git
 cd lean-honeypot
 ./install.sh
-reboot
 ```
 
-After reboot, SSH back in on port **64295**:
+The script moves SSH to port 64295, restarts sshd, and starts all containers — no reboot required. Your current session stays alive but next time connect on the new port:
 
 ```bash
 ssh -p 64295 root@<ip>
@@ -82,8 +81,8 @@ docker compose pull && docker compose up -d
 # Access Dionaea SQLite database for manual review
 docker exec -it dionaea sqlite3 /opt/dionaea/var/lib/dionaea/dionaea.sqlite
 
-# View Promtail targets and status
-curl -s http://localhost:9080/targets
+# View Promtail targets and status (no host port, must exec into container)
+docker exec promtail wget -qO- http://localhost:9080/targets 2>/dev/null
 ```
 
 ## Troubleshooting
