@@ -49,6 +49,12 @@ if ! grep -q "Port 64295" /etc/ssh/sshd_config.d/port.conf 2>/dev/null; then
   echo "SSH moved to port 64295. Will take effect after reboot."
 fi
 
+# Stop services that conflict with honeypot ports
+echo "Stopping conflicting services..."
+for svc in exim4 postfix sendmail; do
+  systemctl disable --now "$svc" 2>/dev/null || true
+done
+
 # Create log directories
 mkdir -p /var/log/cowrie /var/log/opencanary
 chown 1000:1000 /var/log/cowrie
