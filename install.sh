@@ -65,11 +65,27 @@ until docker info >/dev/null 2>&1; do
 done
 echo "Docker is ready."
 
-# Move real SSH to port 64295
+# Move real SSH to port 64295 and restart it NOW so port 22 is free for Cowrie
 mkdir -p /etc/ssh/sshd_config.d
 if ! grep -q "Port 64295" /etc/ssh/sshd_config.d/port.conf 2>/dev/null; then
   echo "Port 64295" > /etc/ssh/sshd_config.d/port.conf
-  echo "SSH will move to port 64295 after reboot."
+fi
+# Comment out any Port directive in main sshd_config so our drop-in has sole control
+sed -i 's/^Port /#Port /' /etc/ssh/sshd_config 2>/dev/null || true
+
+echo "Restarting SSH on port 64295 (existing session stays alive)..."
+if systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null; then
+  echo "SSH restarted on port 64295."
+else
+  echo "Warning: could not restart SSH service."
+fi
+sleep 2
+
+# Safety net: if sshd is still on port 22, force-kill it
+if ss -tlnp 2>/dev/null | grep ':22 ' | grep -q sshd; then
+  echo "sshd still bound to port 22, force-releasing..."
+  fuser -k 22/tcp 2>/dev/null || true
+  sleep 2
 fi
 
 # Stop services that conflict with honeypot ports
@@ -122,17 +138,10 @@ echo "Systemd service created and enabled."
 echo ""
 echo "=== Install complete: $(date) ==="
 echo ""
-echo "The system will now reboot to:"
-echo "  - Move SSH to port 64295 (reconnect on that port after reboot)"
-echo "  - Free port 22 for the Cowrie honeypot"
-echo "  - Auto-start the honeypot stack via systemd"
+echo "All services are running. No reboot required."
 echo ""
-echo "After reboot:"
-echo "  ssh -p 64295 root@<your-ip>"
+echo "IMPORTANT: SSH has moved to port 64295."
+echo "  Reconnect with: ssh -p 64295 root@<your-ip>"
 echo "  Grafana: http://<your-ip>:64296"
 echo ""
 echo "Log saved to $LOG"
-echo ""
-echo "Rebooting in 5 seconds..."
-sleep 5
-reboot
