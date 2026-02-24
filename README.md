@@ -36,7 +36,7 @@ Lightweight honeypot stack deployed via cloud-init and Docker Compose on Debian 
 2. Paste the contents of `cloud-init.yaml` into the user-data / cloud-init field
 3. **Before deploying**, edit the `git clone` URL in `cloud-init.yaml` to point to your fork
 4. Launch the VPS and wait for cloud-init to finish (the server will reboot once at the end)
-5. SSH in on port **64295**: `ssh -p 64295 honeypot@<ip>`
+5. SSH in on port **64295**: `ssh -p 64295 root@<ip>`
 6. Access Grafana at `http://<ip>:64296` (default login: `admin` / `changeme`)
 
 ## Post-Deploy Checklist
@@ -62,7 +62,7 @@ docker logs -f opencanary
 docker stats
 
 # Restart the entire stack
-cd /home/honeypot/lean-honeypot && docker compose restart
+cd /root/lean-honeypot && docker compose restart
 
 # Restart a single service
 docker compose restart cowrie

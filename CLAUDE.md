@@ -4,7 +4,7 @@ Lightweight honeypot deployment stack using cloud-init + Docker Compose on Debia
 
 ## Project Structure
 
-- `cloud-init.yaml` — VPS bootstrap: installs Docker, creates `honeypot` user, moves SSH to port 64295, starts the stack
+- `cloud-init.yaml` — VPS bootstrap: installs Docker, moves SSH to port 64295, clones repo to `/root/lean-honeypot`, starts the stack
 - `docker-compose.yml` — All services on `honeypot-net` bridge network
 - `config/` — Per-service configuration files (mounted read-only into containers)
 - `dashboards/` — Grafana dashboard JSON (auto-provisioned)
@@ -29,6 +29,7 @@ Lightweight honeypot deployment stack using cloud-init + Docker Compose on Debia
 - Grafana on port 64296
 - Log pipeline: Cowrie/Opencanary write JSON to `/var/log/` → Promtail ships to Loki → Grafana queries Loki
 - Dionaea data is in a named volume; review via `docker exec` + sqlite3
+- Runs as root — this is a dedicated throwaway VPS, no separate user needed
 - Target environment: 2 GB RAM Debian 12 VPS
 
 ## Editing Guidelines

@@ -10,12 +10,6 @@ packages:
   - ca-certificates
   - gnupg
 
-users:
-  - name: honeypot
-    shell: /bin/bash
-    groups: sudo
-    sudo: ALL=(ALL) NOPASSWD:ALL
-
 write_files:
   - path: /etc/ssh/sshd_config.d/port.conf
     content: |
@@ -23,11 +17,10 @@ write_files:
     permissions: "0644"
 
   # Set your Grafana admin password here before deploying
-  - path: /home/honeypot/.env
+  - path: /root/.env
     content: |
       GF_SECURITY_ADMIN_PASSWORD=changeme
     permissions: "0600"
-    owner: honeypot:honeypot
 
 runcmd:
   # Install Docker CE from official repo
@@ -38,18 +31,13 @@ runcmd:
   - apt-get update
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-  # Add honeypot user to docker group
-  - usermod -aG docker honeypot
-
   # Create log directories
   - mkdir -p /var/log/cowrie /var/log/opencanary
-  - chown -R 1000:1000 /var/log/cowrie
-  - chown -R 1000:1000 /var/log/opencanary
 
   # Clone repo, move .env into place, and start services
-  - su - honeypot -c "git clone https://github.com/CHANGEME/lean-honeypot.git /home/honeypot/lean-honeypot"
-  - su - honeypot -c "mv /home/honeypot/.env /home/honeypot/lean-honeypot/.env"
-  - su - honeypot -c "cd /home/honeypot/lean-honeypot && docker compose up -d"
+  - git clone https://github.com/CHANGEME/lean-honeypot.git /root/lean-honeypot
+  - mv /root/.env /root/lean-honeypot/.env
+  - docker compose -f /root/lean-honeypot/docker-compose.yml up -d
 
   # Reboot to apply SSH port change and finalize
   - reboot
