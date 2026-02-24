@@ -23,6 +23,8 @@ write_files:
     permissions: "0600"
 
 runcmd:
+  - exec >> /var/log/lean-honeypot-init.log 2>&1
+
   # Install Docker CE from official repo
   - install -m 0755 -d /etc/apt/keyrings
   - curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
