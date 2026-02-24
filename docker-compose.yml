@@ -3,7 +3,6 @@ networks:
     driver: bridge
 
 volumes:
-  cowrie-logs:
   dionaea-data:
   loki-data:
   grafana-data:
@@ -35,7 +34,6 @@ services:
       - "3306:3306"
       - "5060:5060"
     volumes:
-      - ./config/dionaea/dionaea.cfg:/opt/dionaea/etc/dionaea/dionaea.cfg:ro
       - dionaea-data:/opt/dionaea/var/lib/dionaea
     networks:
       - honeypot-net
@@ -92,6 +90,7 @@ services:
     environment:
       # Change this password after first login
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-changeme}
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/honeypot-overview.json
     volumes:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro

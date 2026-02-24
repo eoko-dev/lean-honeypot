@@ -1,54 +1,69 @@
 {
-  "annotations": {
-    "list": []
-  },
+  "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
+      "id": 1,
       "title": "Attack Attempts Over Time",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
-      "datasource": { "type": "loki", "uid": "" },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(count_over_time({job=~\"cowrie|opencanary\"} [5m])) by (job)",
+          "expr": "sum by (job) (count_over_time({job=~\"cowrie|opencanary\"} [5m]))",
           "legendFormat": "{{job}}",
+          "queryType": "range",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "color": { "mode": "palette-classic" },
           "custom": {
+            "axisBorderShow": false,
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "pointSize": 5
-          }
+            "fillOpacity": 25,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": { "mode": "none" }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
+        "tooltip": { "mode": "multi", "sort": "desc" }
       }
     },
     {
+      "id": 2,
       "title": "Top Attacker IPs",
       "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "loki", "uid": "" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "topk(20, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | src_ip != \"\" [$__range])))",
-          "refId": "A",
-          "instant": true
+          "expr": "topk(20, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | src_ip != \"\" | __error__=\"\" [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        },
+        {
+          "expr": "topk(20, sum by (src_host) (count_over_time({job=\"opencanary\"} | json | src_host != \"\" | __error__=\"\" [$__range])))",
+          "queryType": "instant",
+          "refId": "B"
         }
       ],
       "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
         {
           "id": "sortBy",
           "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] }
@@ -59,7 +74,11 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "src_ip" },
-            "properties": [{ "id": "displayName", "value": "Source IP" }]
+            "properties": [{ "id": "displayName", "value": "Source IP (Cowrie)" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "src_host" },
+            "properties": [{ "id": "displayName", "value": "Source IP (Opencanary)" }]
           },
           {
             "matcher": { "id": "byName", "options": "Value" },
@@ -69,73 +88,97 @@
       }
     },
     {
+      "id": 3,
       "title": "Top Targeted Ports",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "loki", "uid": "" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "topk(10, sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | dst_port != \"\" [$__range])))",
-          "refId": "A",
-          "instant": true
+          "expr": "topk(10, sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | dst_port != \"\" | __error__=\"\" [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "color": { "mode": "palette-classic" },
           "custom": {
-            "fillOpacity": 80
+            "fillOpacity": 80,
+            "axisBorderShow": false
           }
         },
         "overrides": []
       },
       "options": {
         "orientation": "horizontal",
-        "legend": { "displayMode": "hidden" }
+        "xTickLabelRotation": 0,
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" }
       }
     },
     {
+      "id": 4,
       "title": "Cowrie Command Log",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 14, "x": 0, "y": 16 },
-      "datasource": { "type": "loki", "uid": "" },
+      "gridPos": { "h": 12, "w": 14, "x": 0, "y": 18 },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "{job=\"cowrie\"} | json | eventid = \"cowrie.command.input\"",
+          "expr": "{job=\"cowrie\"} | json | eventid = `cowrie.command.input`",
+          "queryType": "range",
           "refId": "A"
         }
       ],
       "options": {
         "showTime": true,
+        "showCommonLabels": false,
+        "showLabels": false,
         "sortOrder": "Descending",
         "enableLogDetails": true,
-        "wrapLogMessage": true
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "dedupStrategy": "none"
       }
     },
     {
+      "id": 5,
       "title": "Protocol Breakdown",
       "type": "piechart",
-      "gridPos": { "h": 10, "w": 10, "x": 14, "y": 16 },
-      "datasource": { "type": "loki", "uid": "" },
+      "gridPos": { "h": 12, "w": 10, "x": 14, "y": 18 },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | dst_port != \"\" [$__range]))",
-          "refId": "A",
-          "instant": true
+          "expr": "sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | dst_port != \"\" | __error__=\"\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "right", "values": ["percent", "value"] },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["percent", "value"]
+        },
         "pieType": "donut",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": { "mode": "single" }
       }
     }
   ],
   "schemaVersion": 38,
-  "style": "dark",
   "tags": ["honeypot"],
   "templating": { "list": [] },
   "time": { "from": "now-24h", "to": "now" },

@@ -77,6 +77,16 @@ docker exec -it dionaea sqlite3 /opt/dionaea/var/lib/dionaea/dionaea.sqlite
 curl -s http://localhost:9080/targets
 ```
 
+## Debugging cloud-init
+
+If the stack doesn't come up automatically after reboot, check the init log:
+
+```bash
+cat /var/log/lean-honeypot-init.log
+```
+
+This captures all output from `first-boot.sh`, including Docker install, git clone, and compose output.
+
 ## Gotchas
 
 - **Firewall**: Your cloud firewall must allow all inbound ports listed above. If attackers can't reach the honeypot ports, you won't collect any data.
