@@ -88,9 +88,13 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
   echo "Created .env from .env.example — edit GF_SECURITY_ADMIN_PASSWORD before going live."
 fi
 
-# Pre-build images so they're ready after reboot
-echo "Pre-building container images..."
+# Build images and start the stack so Docker tracks container state.
+# restart: unless-stopped then handles all future reboots automatically.
+echo "Building container images..."
 docker compose -f "$SCRIPT_DIR/docker-compose.yml" build
+
+echo "Starting honeypot stack..."
+docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d
 
 # Create systemd service for auto-start on boot
 echo "Creating systemd service for honeypot stack..."
