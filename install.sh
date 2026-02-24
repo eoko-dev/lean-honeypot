@@ -10,9 +10,15 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-# Must be Debian
-if [ ! -f /etc/debian_version ]; then
-  echo "Error: Debian 12 required"
+# Must be Debian or Ubuntu
+if [ ! -f /etc/os-release ]; then
+  echo "Error: Debian 12 or Ubuntu 24.04+ required"
+  exit 1
+fi
+# shellcheck source=/dev/null
+. /etc/os-release
+if [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
+  echo "Error: Debian 12 or Ubuntu 24.04+ required (detected: ${ID:-unknown})"
   exit 1
 fi
 
@@ -22,15 +28,15 @@ echo "=== lean-honeypot install: $(date) ==="
 
 # Install dependencies
 apt-get update
-apt-get install -y git curl wget ca-certificates gnupg
+apt-get install -y git curl wget ca-certificates gnupg psmisc
 
 # Install Docker CE if not present, or add compose plugin if missing
 if ! command -v docker &>/dev/null; then
   echo "Installing Docker CE..."
   install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  curl -fsSL "https://download.docker.com/linux/${ID}/gpg" -o /etc/apt/keyrings/docker.asc
   chmod a+r /etc/apt/keyrings/docker.asc
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${ID} ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
   apt-get update
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   echo "Docker installed."
@@ -71,6 +77,13 @@ echo "Stopping conflicting services..."
 for svc in exim4 postfix sendmail; do
   systemctl disable --now "$svc" 2>/dev/null || true
 done
+
+# Kill any remaining processes holding honeypot ports (catches non-systemd procs and race conditions)
+echo "Freeing honeypot ports..."
+for port in 21 25 80 110 443 445 1433 3306 5060 5900 6379 8080 27017; do
+  fuser -k "${port}/tcp" 2>/dev/null || true
+done
+sleep 2
 
 # Create log directories
 mkdir -p /var/log/cowrie /var/log/opencanary
