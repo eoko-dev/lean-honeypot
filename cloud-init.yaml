@@ -1,0 +1,55 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - curl
+  - wget
+  - ca-certificates
+  - gnupg
+
+users:
+  - name: honeypot
+    shell: /bin/bash
+    groups: sudo
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/port.conf
+    content: |
+      Port 64295
+    permissions: "0644"
+
+  # Set your Grafana admin password here before deploying
+  - path: /home/honeypot/.env
+    content: |
+      GF_SECURITY_ADMIN_PASSWORD=changeme
+    permissions: "0600"
+    owner: honeypot:honeypot
+
+runcmd:
+  # Install Docker CE from official repo
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Add honeypot user to docker group
+  - usermod -aG docker honeypot
+
+  # Create log directories
+  - mkdir -p /var/log/cowrie /var/log/opencanary
+  - chown -R 1000:1000 /var/log/cowrie
+  - chown -R 1000:1000 /var/log/opencanary
+
+  # Clone repo, move .env into place, and start services
+  - su - honeypot -c "git clone https://github.com/CHANGEME/lean-honeypot.git /home/honeypot/lean-honeypot"
+  - su - honeypot -c "mv /home/honeypot/.env /home/honeypot/lean-honeypot/.env"
+  - su - honeypot -c "cd /home/honeypot/lean-honeypot && docker compose up -d"
+
+  # Reboot to apply SSH port change and finalize
+  - reboot
