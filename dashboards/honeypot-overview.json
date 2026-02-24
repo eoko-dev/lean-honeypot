@@ -7,10 +7,164 @@
   "links": [],
   "panels": [
     {
+      "id": 10,
+      "title": "Total Events",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({job=~\"cowrie|opencanary\"} [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 1000 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Cowrie Sessions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "count_over_time({job=\"cowrie\"} | json | eventid=`cowrie.session.connect` | __error__=\"\" [$__range])",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "OpenCanary Alerts",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "count_over_time({job=\"opencanary\"} | json | __error__=\"\" [$__range])",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "purple", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Targeted Ports",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "count(sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | label_format dst_port=`{{ if eq .dst_port \"2222\" }}22{{ else if eq .dst_port \"2223\" }}23{{ else }}{{ .dst_port }}{{ end }}` | dst_port != \"\" | __error__=\"\" [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
       "id": 1,
       "title": "Attack Attempts Over Time",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
@@ -45,7 +199,7 @@
       "id": 2,
       "title": "Top Attacker IPs",
       "type": "table",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 12 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
@@ -54,7 +208,7 @@
           "refId": "A"
         },
         {
-          "expr": "topk(20, sum by (src_host) (count_over_time({job=\"opencanary\"} | json | src_host != \"\" | __error__=\"\" [$__range])))",
+          "expr": "topk(20, sum by (src_ip) (count_over_time({job=\"opencanary\"} | json | label_format src_ip=src_host | src_ip != \"\" | __error__=\"\" [$__range])))",
           "queryType": "instant",
           "refId": "B"
         }
@@ -74,11 +228,7 @@
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "src_ip" },
-            "properties": [{ "id": "displayName", "value": "Source IP (Cowrie)" }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "src_host" },
-            "properties": [{ "id": "displayName", "value": "Source IP (Opencanary)" }]
+            "properties": [{ "id": "displayName", "value": "Attacker IP" }]
           },
           {
             "matcher": { "id": "byName", "options": "Value" },
@@ -91,11 +241,12 @@
       "id": 3,
       "title": "Top Targeted Ports",
       "type": "barchart",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 12 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "topk(10, sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | dst_port != \"\" | __error__=\"\" [$__range])))",
+          "expr": "topk(10, sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | label_format dst_port=`{{ if eq .dst_port \"2222\" }}22{{ else if eq .dst_port \"2223\" }}23{{ else }}{{ .dst_port }}{{ end }}` | dst_port != \"\" | __error__=\"\" [$__range])))",
+          "legendFormat": "{{dst_port}}",
           "queryType": "instant",
           "refId": "A"
         }
@@ -120,38 +271,15 @@
       }
     },
     {
-      "id": 4,
-      "title": "Cowrie Command Log",
-      "type": "logs",
-      "gridPos": { "h": 12, "w": 14, "x": 0, "y": 18 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "expr": "{job=\"cowrie\"} | json | eventid = `cowrie.command.input`",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "sortOrder": "Descending",
-        "enableLogDetails": true,
-        "wrapLogMessage": true,
-        "prettifyLogMessage": false,
-        "dedupStrategy": "none"
-      }
-    },
-    {
       "id": 5,
       "title": "Protocol Breakdown",
       "type": "piechart",
-      "gridPos": { "h": 12, "w": 10, "x": 14, "y": 18 },
+      "gridPos": { "h": 10, "w": 10, "x": 0, "y": 22 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum by (dst_port) (count_over_time({job=~\"cowrie|opencanary\"} | json | dst_port != \"\" | __error__=\"\" [$__range]))",
+          "expr": "sum by (service) (count_over_time({job=~\"cowrie|opencanary\"} | json | label_format dst_port=`{{ if eq .dst_port \"2222\" }}22{{ else if eq .dst_port \"2223\" }}23{{ else }}{{ .dst_port }}{{ end }}` | label_format service=`{{ if eq .dst_port \"22\" }}SSH{{ else if eq .dst_port \"23\" }}Telnet{{ else if eq .dst_port \"25\" }}SMTP{{ else if eq .dst_port \"110\" }}POP3{{ else if eq .dst_port \"5900\" }}VNC{{ else if eq .dst_port \"6379\" }}Redis{{ else if eq .dst_port \"8080\" }}HTTP Proxy{{ else if eq .dst_port \"27017\" }}MongoDB{{ else }}Port {{ .dst_port }}{{ end }}` | service != \"\" | __error__=\"\" [$__range]))",
+          "legendFormat": "{{service}}",
           "queryType": "instant",
           "refId": "A"
         }
@@ -175,6 +303,91 @@
           "values": false
         },
         "tooltip": { "mode": "single" }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Cowrie Login Attempts",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 14, "x": 10, "y": 22 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "topk(20, sum by (username, password) (count_over_time({job=\"cowrie\"} | json | eventid=`cowrie.login.failed` | username != \"\" | __error__=\"\" [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "username" },
+            "properties": [{ "id": "displayName", "value": "Username" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "password" },
+            "properties": [{ "id": "displayName", "value": "Password" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [{ "id": "displayName", "value": "Attempts" }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Cowrie Command Log",
+      "type": "logs",
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{job=\"cowrie\"} | json | eventid = `cowrie.command.input` | line_format `{{.src_ip}} $ {{.input}}`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Recent Activity",
+      "type": "logs",
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{job=~\"cowrie|opencanary\"} | json | __error__=\"\" | line_format `{{.job}} | {{ if .src_ip }}{{.src_ip}}{{ else }}{{.src_host}}{{ end }} \u2192 port {{.dst_port}}`",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "dedupStrategy": "none"
       }
     }
   ],
