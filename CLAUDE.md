@@ -1,10 +1,10 @@
 # lean-honeypot
 
-Lightweight honeypot deployment stack using cloud-init + Docker Compose on Debian 12.
+Lightweight honeypot deployment stack using install.sh + Docker Compose on Debian 12.
 
 ## Project Structure
 
-- `cloud-init.yaml` — VPS bootstrap: installs Docker, moves SSH to port 64295, clones repo to `/root/lean-honeypot`, starts the stack
+- `install.sh` — Installs Docker, moves SSH to port 64295, creates log dirs, starts the stack
 - `docker-compose.yml` — All services on `honeypot-net` bridge network
 - `config/` — Per-service configuration files (mounted read-only into containers)
 - `dashboards/` — Grafana dashboard JSON (auto-provisioned)
@@ -22,7 +22,7 @@ Lightweight honeypot deployment stack using cloud-init + Docker Compose on Debia
 
 ## Key Conventions
 
-- No Terraform, Ansible, or Kubernetes — cloud-init and Docker Compose only
+- No Terraform, Ansible, or Kubernetes — install.sh and Docker Compose only
 - All Docker image versions are pinned (except Cowrie which lacks stable tags)
 - No placeholders in configs except `GF_SECURITY_ADMIN_PASSWORD` (defaults to `changeme`)
 - Real SSH runs on port 64295; port 22 belongs to Cowrie

@@ -1,11 +1,11 @@
 # lean-honeypot
 
-Lightweight honeypot stack deployed via cloud-init and Docker Compose on Debian 12. No Terraform, no Kubernetes.
+Lightweight honeypot stack. One install script, Docker Compose, Debian 12. No Terraform, no Kubernetes.
 
 ## Requirements
 
 - Debian 12 VPS with at least **2 GB RAM**
-- Cloud provider that supports cloud-init (DigitalOcean, Vultr, etc.)
+- Root access
 - Cloud firewall must allow **all inbound TCP ports** (honeypot ports + management ports)
 
 ### Ports to open in your cloud firewall
@@ -32,16 +32,25 @@ Lightweight honeypot stack deployed via cloud-init and Docker Compose on Debian 
 
 ## Deployment
 
-1. Create a Debian 12 VPS at your cloud provider
-2. Paste the contents of `cloud-init.yaml` into the user-data / cloud-init field
-3. **Before deploying**, edit the `git clone` URL in `cloud-init.yaml` to point to your fork
-4. Launch the VPS and wait for cloud-init to finish (the server will reboot once at the end)
-5. SSH in on port **64295**: `ssh -p 64295 root@<ip>`
-6. Access Grafana at `http://<ip>:64296` (default login: `admin` / `changeme`)
+```bash
+ssh root@<ip>
+git clone https://github.com/YOURUSER/lean-honeypot.git
+cd lean-honeypot
+./install.sh
+reboot
+```
+
+After reboot, SSH back in on port **64295**:
+
+```bash
+ssh -p 64295 root@<ip>
+```
+
+Access Grafana at `http://<ip>:64296` (default login: `admin` / `changeme`).
 
 ## Post-Deploy Checklist
 
-- [ ] Change the Grafana admin password (Settings > Change Password, or set `GF_SECURITY_ADMIN_PASSWORD` env var)
+- [ ] Change the Grafana admin password (edit `.env` then `docker compose restart grafana`)
 - [ ] Verify all containers are running: `docker ps`
 - [ ] Confirm Cowrie logs are flowing: `tail -f /var/log/cowrie/cowrie.json`
 - [ ] Confirm Opencanary logs are flowing: `tail -f /var/log/opencanary/opencanary.log`
@@ -62,7 +71,7 @@ docker logs -f opencanary
 docker stats
 
 # Restart the entire stack
-cd /root/lean-honeypot && docker compose restart
+cd ~/lean-honeypot && docker compose restart
 
 # Restart a single service
 docker compose restart cowrie
@@ -77,15 +86,13 @@ docker exec -it dionaea sqlite3 /opt/dionaea/var/lib/dionaea/dionaea.sqlite
 curl -s http://localhost:9080/targets
 ```
 
-## Debugging cloud-init
+## Troubleshooting
 
-If the stack doesn't come up automatically after reboot, check the init log:
+Check the install log:
 
 ```bash
-cat /var/log/lean-honeypot-init.log
+cat /var/log/lean-honeypot-install.log
 ```
-
-This captures all output from `first-boot.sh`, including Docker install, git clone, and compose output.
 
 ## Gotchas
 
