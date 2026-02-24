@@ -69,7 +69,7 @@ echo "Docker is ready."
 mkdir -p /etc/ssh/sshd_config.d
 if ! grep -q "Port 64295" /etc/ssh/sshd_config.d/port.conf 2>/dev/null; then
   echo "Port 64295" > /etc/ssh/sshd_config.d/port.conf
-  echo "SSH moved to port 64295. Will take effect after reboot."
+  echo "SSH will move to port 64295 after reboot."
 fi
 
 # Stop services that conflict with honeypot ports
@@ -77,13 +77,6 @@ echo "Stopping conflicting services..."
 for svc in exim4 postfix sendmail; do
   systemctl disable --now "$svc" 2>/dev/null || true
 done
-
-# Kill any remaining processes holding honeypot ports (catches non-systemd procs and race conditions)
-echo "Freeing honeypot ports..."
-for port in 21 25 80 110 443 445 1433 3306 5060 5900 6379 8080 27017; do
-  fuser -k "${port}/tcp" 2>/dev/null || true
-done
-sleep 2
 
 # Create log directories
 mkdir -p /var/log/cowrie /var/log/opencanary
@@ -95,16 +88,47 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
   echo "Created .env from .env.example — edit GF_SECURITY_ADMIN_PASSWORD before going live."
 fi
 
-# Start the stack
-echo "Starting containers..."
-docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d --build
+# Pre-build images so they're ready after reboot
+echo "Pre-building container images..."
+docker compose -f "$SCRIPT_DIR/docker-compose.yml" build
+
+# Create systemd service for auto-start on boot
+echo "Creating systemd service for honeypot stack..."
+cat > /etc/systemd/system/lean-honeypot.service <<EOF
+[Unit]
+Description=Lean Honeypot Docker Compose Stack
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=$SCRIPT_DIR
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable lean-honeypot.service
+echo "Systemd service created and enabled."
 
 echo ""
 echo "=== Install complete: $(date) ==="
 echo ""
-echo "Next steps:"
-echo "  1. Edit .env and set a real Grafana password"
-echo "  2. Reboot to move SSH to port 64295"
-echo "  3. Access Grafana at http://<your-ip>:64296"
+echo "The system will now reboot to:"
+echo "  - Move SSH to port 64295 (reconnect on that port after reboot)"
+echo "  - Free port 22 for the Cowrie honeypot"
+echo "  - Auto-start the honeypot stack via systemd"
+echo ""
+echo "After reboot:"
+echo "  ssh -p 64295 root@<your-ip>"
+echo "  Grafana: http://<your-ip>:64296"
 echo ""
 echo "Log saved to $LOG"
+echo ""
+echo "Rebooting in 5 seconds..."
+sleep 5
+reboot
