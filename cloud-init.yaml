@@ -22,40 +22,27 @@ write_files:
       GF_SECURITY_ADMIN_PASSWORD=changeme
     permissions: "0600"
 
-  # Edit REPO_URL below to point to your fork before deploying
-  - path: /root/first-boot.sh
-    permissions: "0755"
-    content: |
-      #!/bin/bash
-      set -euo pipefail
-      exec >> /var/log/lean-honeypot-init.log 2>&1
-      echo "=== lean-honeypot init: $(date) ==="
-
-      REPO_URL="https://github.com/CHANGEME/lean-honeypot.git"
-      REPO_DIR="/root/lean-honeypot"
-
-      # Install Docker CE
-      install -m 0755 -d /etc/apt/keyrings
-      curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-      chmod a+r /etc/apt/keyrings/docker.asc
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
-      apt-get update
-      apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-      # Wait for Docker daemon to be ready
-      until docker info >/dev/null 2>&1; do sleep 2; done
-
-      # Create host log directories (cowrie runs as uid 1000 inside container)
-      mkdir -p /var/log/cowrie /var/log/opencanary
-      chown 1000:1000 /var/log/cowrie
-
-      # Clone repo, drop .env in place, and start the stack
-      git clone "$REPO_URL" "$REPO_DIR"
-      mv /root/.env "$REPO_DIR/.env"
-      docker compose -f "$REPO_DIR/docker-compose.yml" up -d --build
-
-      echo "=== init complete: $(date) ==="
-
 runcmd:
-  - bash /root/first-boot.sh
+  # Install Docker CE from official repo
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Wait for Docker daemon
+  - until docker info >/dev/null 2>&1; do sleep 2; done
+
+  # Create host log directories (cowrie runs as uid 1000)
+  - mkdir -p /var/log/cowrie /var/log/opencanary
+  - chown 1000:1000 /var/log/cowrie
+
+  # Clone repo, move .env into place, and start services
+  # >>> Edit this URL to point to your fork before deploying <<<
+  - git clone https://github.com/CHANGEME/lean-honeypot.git /root/lean-honeypot
+  - mv /root/.env /root/lean-honeypot/.env
+  - docker compose -f /root/lean-honeypot/docker-compose.yml up -d --build
+
+  # Reboot to apply SSH port change
   - reboot
