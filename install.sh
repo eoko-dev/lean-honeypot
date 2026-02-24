@@ -24,7 +24,7 @@ echo "=== lean-honeypot install: $(date) ==="
 apt-get update
 apt-get install -y git curl wget ca-certificates gnupg
 
-# Install Docker CE if not present
+# Install Docker CE if not present, or add compose plugin if missing
 if ! command -v docker &>/dev/null; then
   echo "Installing Docker CE..."
   install -m 0755 -d /etc/apt/keyrings
@@ -34,16 +34,33 @@ if ! command -v docker &>/dev/null; then
   apt-get update
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   echo "Docker installed."
+elif ! docker compose version &>/dev/null; then
+  echo "Docker found but compose plugin missing, installing..."
+  apt-get update
+  apt-get install -y docker-compose-plugin
+  echo "Compose plugin installed."
 else
-  echo "Docker already installed, skipping."
+  echo "Docker and compose plugin already installed, skipping."
 fi
+
+systemctl enable docker
+systemctl start docker
 
 # Wait for Docker daemon
 echo "Waiting for Docker daemon..."
-until docker info >/dev/null 2>&1; do sleep 2; done
+TRIES=0
+until docker info >/dev/null 2>&1; do
+  TRIES=$((TRIES + 1))
+  if [ "$TRIES" -ge 30 ]; then
+    echo "Error: Docker daemon failed to start after 60s"
+    exit 1
+  fi
+  sleep 2
+done
 echo "Docker is ready."
 
 # Move real SSH to port 64295
+mkdir -p /etc/ssh/sshd_config.d
 if ! grep -q "Port 64295" /etc/ssh/sshd_config.d/port.conf 2>/dev/null; then
   echo "Port 64295" > /etc/ssh/sshd_config.d/port.conf
   echo "SSH moved to port 64295. Will take effect after reboot."
