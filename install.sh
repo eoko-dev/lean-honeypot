@@ -22,7 +22,7 @@ echo "=== lean-honeypot install: $(date) ==="
 
 # Install dependencies
 apt-get update
-apt-get install -y git curl wget ca-certificates gnupg
+apt-get install -y git curl wget ca-certificates gnupg psmisc
 
 # Install Docker CE if not present, or add compose plugin if missing
 if ! command -v docker &>/dev/null; then
@@ -71,6 +71,13 @@ echo "Stopping conflicting services..."
 for svc in exim4 postfix sendmail; do
   systemctl disable --now "$svc" 2>/dev/null || true
 done
+
+# Kill any remaining processes holding honeypot ports (catches non-systemd procs and race conditions)
+echo "Freeing honeypot ports..."
+for port in 21 25 80 110 443 445 1433 3306 5060 5900 6379 8080 27017; do
+  fuser -k "${port}/tcp" 2>/dev/null || true
+done
+sleep 2
 
 # Create log directories
 mkdir -p /var/log/cowrie /var/log/opencanary
